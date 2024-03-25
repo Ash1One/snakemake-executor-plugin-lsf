@@ -530,6 +530,11 @@ class Executor(RemoteExecutor):
             f"{lsf_config['LSF_CONFDIR']}/lsbatch/"
             f"{lsf_config['LSF_CLUSTER']}/configdir/lsb.params"
         )
+        if not os.path.exists(lsb_params_file):
+            lsb_params_file = (
+                f"{lsf_config['LSF_CONFDIR']}/lsbatch/"
+                f"dell-blade-cluster1/configdir/lsb.params"
+            )
         with open(lsb_params_file, "r") as file:
             for line in file:
                 if "=" in line and not line.strip().startswith("#"):
