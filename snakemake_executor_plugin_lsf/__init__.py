@@ -88,9 +88,9 @@ class Executor(RemoteExecutor):
             wildcard_str_job = ",".join(
                 [f"{k}={v}" for k, v in wildcard_dict_noslash.items()]
             )
-            jobname = f"Snakemake_{log_folder}:{wildcard_str_job}___({self.run_uuid})"
+            jobname = f"RMAP_{log_folder}:{wildcard_str_job}___({self.run_uuid})"
         else:
-            jobname = f"Snakemake_{log_folder}___({self.run_uuid})"
+            jobname = f"RMAP_{log_folder}___({self.run_uuid})"
             wildcard_str = "unique"
 
         lsf_logfile = os.path.abspath(
