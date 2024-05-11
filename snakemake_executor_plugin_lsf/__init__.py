@@ -126,6 +126,9 @@ class Executor(RemoteExecutor):
                 "default via --default-resources."
             )
 
+        if job.resources.get("exe_hosts"):
+            call += f" -m {job.resources.exe_hosts}"
+
         cpus_per_task = job.threads
         if job.resources.get("cpus_per_task"):
             if not isinstance(cpus_per_task, int):
