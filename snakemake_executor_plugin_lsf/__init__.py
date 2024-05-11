@@ -78,7 +78,7 @@ class Executor(RemoteExecutor):
 
         log_folder = f"group_{job.name}" if job.is_group() else f"rule_{job.name}"
 
-        wildcard_dict = job.wildcards_dict
+        wildcard_dict = job.wildcards_dict if not job.is_group() else dict(job.merged_wildcards())
         if wildcard_dict:
             wildcard_dict_noslash = {
                 k: v.replace("/", "___") for k, v in wildcard_dict.items()
