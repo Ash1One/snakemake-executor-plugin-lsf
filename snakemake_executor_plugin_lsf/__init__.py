@@ -113,7 +113,7 @@ class Executor(RemoteExecutor):
         elif job.resources.get("walltime"):
             call += f" -W {job.resources.walltime}"
         elif job.resources.get("time_min"):
-            if not type(job.resources.time_min) in [int, float]:
+            if type(job.resources.time_min) not in [int, float]:
                 self.logger.error("time_min must be a number")
             if not job.resources.time_min % 1 == 0:
                 self.logger.error("time_min must be a whole number")
