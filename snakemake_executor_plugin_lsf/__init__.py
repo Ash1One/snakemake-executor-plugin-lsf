@@ -16,6 +16,7 @@ from typing import List, Generator
 from collections import Counter
 import uuid
 import math
+import hashlib
 from snakemake_interface_executor_plugins.executors.base import SubmittedJobInfo
 from snakemake_interface_executor_plugins.executors.remote import RemoteExecutor
 from snakemake_interface_executor_plugins.settings import CommonSettings
@@ -79,14 +80,23 @@ class Executor(RemoteExecutor):
         if job.is_group():
             # use the group name, which is in groupid
             log_folder = f"group_{job.groupid}"
-            # get all wildcards of all the jobs in the group and
-            # prepend each with job name, as wildcards of same
-            # name can contain different values across jobs
-            wildcard_dict = {
-                f"{j.name}__{k}": v
-                for j in job.jobs
-                for k, v in j.wildcards_dict.items()
-            }
+            # Can not get all wildcards of all the jobs in the group and
+            # prepend each with job name, as may cause 
+            # OSError: [Errno 36] File name too long
+            # e.g. 
+            # wildcard_dict = {
+            #     f"{j.name}__{k}": v
+            #     for j in job.jobs
+            #     for k, v in j.wildcards_dict.items()
+            # }
+            if hasattr(job, "merged_wildcards"):
+                wildcard_dict = dict(job.merged_wildcards())
+            else:
+                wildcard_dict = {}
+                for j in job.jobs:
+                    for name, value in j.wildcards_dict.items():
+                        if name not in wildcard_dict:
+                            wildcard_dict[name] = value
         else:
             log_folder = f"rule_{job.name}"
             wildcard_dict = job.wildcards_dict
@@ -95,12 +105,8 @@ class Executor(RemoteExecutor):
             wildcard_dict_noslash = {
                 k: v.replace("/", "___") for k, v in wildcard_dict.items()
             }
-            wildcard_str = "..".join(
-                [f"{k}={v}" for k, v in wildcard_dict_noslash.items()]
-            )
-            wildcard_str_job = ",".join(
-                [f"{k}={v}" for k, v in wildcard_dict_noslash.items()]
-            )
+            wildcard_str = self.truncate_and_hash(wildcard_dict_noslash)
+            wildcard_str_job = self.truncate_and_hash(wildcard_dict_noslash, ",")
             jobname = f"RMAP_{log_folder}:{wildcard_str_job}___({self.run_uuid})"
         else:
             jobname = f"RMAP_{log_folder}___({self.run_uuid})"
@@ -569,6 +575,15 @@ class Executor(RemoteExecutor):
         ).lower()
 
         return lsf_config
+    
+    @staticmethod
+    def truncate_and_hash(wildcard_dict: dict, joined_delimiter: str="..",max_length: int=100):
+        wildcard_str = joined_delimiter.join([f"{k}={v}" for k, v in wildcard_dict.items()])
+        if len(wildcard_str) > max_length:
+            truncated_str = wildcard_str[:max_length]
+            hashed_str = hashlib.md5(wildcard_str.encode()).hexdigest()
+            return f"{truncated_str}___{hashed_str}"
+        return wildcard_str
 
 
 def walltime_lsf_to_generic(w):
